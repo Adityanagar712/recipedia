@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recipedia Pro</title>
+<meta name="theme-color" content="#0B1E1B">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🍳%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* =====================================================
+   RECIPEDIA PRO — single file
+   AI calls go through /api/chat (the Groq key stays on the server)
+===================================================== */
+:root{
+  --bg:#0B1E1B;
+  --panel:#12302B;
+  --panel-2:#194039;
+  --line:rgba(242,234,219,.13);
+  --text:#F2EADB;
+  --mute:#93B3A8;
+  --saffron:#F6A91B;
+  --chilli:#E5533D;
+  --wa:#25D366;
+  --nav-h:64px;
+  --tabbar-h:0px;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+html.lock{overflow:hidden}
+body{background:var(--bg);color:var(--text);font:400 16px/1.6 'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;min-height:100dvh;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+input,select,textarea{font:inherit;color:inherit}
+img{display:block;max-width:100%}
+a{color:inherit}
+svg.i{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--saffron);outline-offset:2px}
+.mute{color:var(--mute)}
+.small{font-size:13px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+h1,h2,h3,.serif{font-family:'Fraunces',Georgia,serif}
+
+/* ---------- top bar ---------- */
+.top{position:sticky;top:0;z-index:50;background:rgba(11,30,27,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1180px;margin:0 auto;height:var(--nav-h);padding:0 24px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:22px;text-decoration:none;letter-spacing:-.01em}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--saffron);color:#1b1200;display:grid;place-items:center;font-size:18px}
+.tabs{display:flex;gap:4px;margin:0 auto;padding:4px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03)}
+.tabs button{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;color:var(--mute);font-weight:700;font-size:14px;transition:background .2s,color .2s}
+.tabs button:hover{color:var(--text)}
+.tabs button[aria-selected=true]{background:var(--saffron);color:#1b1200}
+.top-right{display:flex;align-items:center;gap:10px}
+.status{display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--mute)}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--saffron)}
+.status.ok .dot{background:var(--wa)}
+.cart-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;transition:border-color .2s,color .2s}
+.cart-btn:hover{border-color:var(--wa);color:var(--wa)}
+.badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--wa);color:#04210f;font-size:12px;font-weight:800;display:grid;place-items:center}
+
+.setup{background:rgba(246,169,27,.12);border-bottom:1px solid rgba(246,169,27,.35)}
+.setup .wrap{padding-top:12px;padding-bottom:12px;display:flex;gap:12px;align-items:flex-start;font-size:14px}
+.setup strong{color:var(--saffron)}
+.setup code{background:rgba(0,0,0,.3);padding:1px 6px;border-radius:6px;font-size:13px}
+
+/* ---------- shared ---------- */
+.panel{display:none}
+.panel.on{display:block}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:12px;font-weight:700;font-size:14px;transition:background .2s,border-color .2s,color .2s,transform .1s;white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--saffron);color:#1b1200}
+.btn-primary:hover:not(:disabled){background:#ffbb3d}
+.btn-ghost{border:1.5px solid var(--line)}
+.btn-ghost:hover:not(:disabled){border-color:var(--saffron);color:var(--saffron)}
+.btn-wa{background:var(--wa);color:#04210f}
+.btn-wa:hover:not(:disabled){background:#3be27d}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:10px}
+.btn.wide{width:100%}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px}
+.lbl{display:block;font-weight:700;font-size:14px;margin:18px 0 8px}
+.lbl:first-child{margin-top:0}
+.field{width:100%;background:var(--panel-2);border:1.5px solid var(--line);border-radius:12px;padding:11px 14px;outline:0;transition:border-color .2s}
+.field:focus{border-color:var(--saffron)}
+textarea.field{resize:vertical;min-height:72px}
+.page-head{padding:44px 0 22px}
+.page-head h2{font-size:clamp(30px,4vw,44px);font-weight:600;line-height:1.1;letter-spacing:-.02em}
+.page-head p{color:var(--mute);margin-top:10px;max-width:56ch}
+.tagchip{display:inline-block;padding:3px 11px;border-radius:999px;background:rgba(255,255,255,.07);font-size:12.5px;font-weight:600;color:var(--mute)}
+.empty{grid-column:1/-1;text-align:center;padding:64px 20px;color:var(--mute)}
+.empty .i{width:44px;height:44px;color:var(--saffron);margin:0 auto 14px;display:block}
+.empty h3{color:var(--text);font-size:22px;font-weight:600;margin-bottom:6px}
+.empty .btn{margin-top:16px}
+.skel{background:linear-gradient(100deg,var(--panel) 30%,var(--panel-2) 50%,var(--panel) 70%);background-size:200% 100%;animation:sh 1.3s linear infinite}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* ---------- hero ---------- */
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:center;padding:56px 0 26px}
+.hero h1{font-weight:600;font-size:clamp(40px,5.6vw,70px);line-height:1.02;letter-spacing:-.025em}
+.hero p{color:var(--mute);max-width:46ch;margin-top:16px;font-size:17px}
+.search{display:flex;align-items:center;gap:10px;margin-top:28px;padding:8px 8px 8px 20px;border-radius:18px;background:var(--panel);border:1.5px solid var(--line);transition:border-color .2s,box-shadow .2s}
+.search:focus-within{border-color:var(--saffron);box-shadow:0 0 0 4px rgba(246,169,27,.14)}
+.search input{flex:1;min-width:0;background:none;border:0;outline:0;font-size:17px;padding:10px 0}
+.search input::placeholder{color:var(--mute)}
+.hero-actions{margin-top:14px}
+.plate{justify-self:center;position:relative;width:min(380px,86%);aspect-ratio:1;border-radius:50%;padding:16px;background:radial-gradient(circle at 30% 25%,#27504a,#10302a);box-shadow:0 34px 60px rgba(0,0,0,.45),inset 0 0 0 2px rgba(255,255,255,.07);transition:transform .35s}
+.plate:hover{transform:rotate(-3deg) scale(1.015)}
+.plate-in{display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;box-shadow:0 0 0 7px rgba(255,255,255,.05)}
+.plate img{width:100%;height:100%;object-fit:cover}
+.plate-cap{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-size:13.5px;font-weight:700;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- browse ---------- */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:6px 0 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:999px;border:1.5px solid var(--line);font-size:13.5px;font-weight:700;transition:border-color .2s,background .2s,color .2s}
+.chip:hover{border-color:var(--saffron)}
+.chip[aria-pressed=true]{background:var(--saffron);border-color:var(--saffron);color:#1b1200}
+.bar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:20px 0 14px}
+.bar h2{font-size:26px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;padding-bottom:90px}
+.tile{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:4/5;background:var(--panel)}
+.tile.feature{grid-column:span 2;aspect-ratio:auto;min-height:320px}
+.tile.skel{border-radius:18px}
+.tile-main{position:absolute;inset:0;width:100%;text-align:left}
+.tile img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.tile:hover img{transform:scale(1.04)}
+.tile-cap{position:absolute;left:0;right:0;bottom:0;padding:48px 64px 15px 16px;background:linear-gradient(to top,rgba(6,16,14,.94),rgba(6,16,14,0))}
+.tile-cap h3{font-weight:600;font-size:19px;line-height:1.2}
+.tile.feature .tile-cap h3{font-size:30px}
+.tile-cap small{color:var(--mute);font-size:13px}
+.tile-act{position:absolute;right:12px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(6,16,14,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s,color .2s}
+.tile-fav{top:12px}
+.tile-order{bottom:12px;color:var(--wa)}
+.tile-order:hover{background:var(--wa);color:#04210f}
+.tile-fav.on{color:var(--saffron)}
+.tile-fav.on svg,.btn.on svg{fill:var(--saffron);stroke:var(--saffron)}
+.reveal{animation:rise .5s both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+
+/* ---------- recipe sheet ---------- */
+dialog[open]{width:100vw;height:100dvh;max-width:100vw;max-height:100dvh;padding:0;border:0;background:transparent;color:inherit}
+dialog::backdrop{background:rgba(3,10,9,.74);backdrop-filter:blur(6px)}
+#dlg[open]{display:grid;place-items:center}
+.sheet{position:relative;width:min(980px,94vw);max-height:92dvh;background:var(--panel);border:1px solid var(--line);border-radius:24px;overflow:hidden;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);animation:pop .25s}
+@keyframes pop{from{opacity:0;transform:scale(.97)}}
+.sheet-media{background:var(--panel-2);min-height:260px}
+.sheet-media img{width:100%;height:100%;object-fit:cover}
+.sheet-body{overflow-y:auto;max-height:92dvh;padding:30px 30px 34px}
+.sheet h2{font-size:clamp(26px,3.4vw,36px);font-weight:600;line-height:1.1;letter-spacing:-.01em;padding-right:36px}
+.sheet h3{font-size:20px;font-weight:600}
+.x{position:absolute;top:14px;right:14px;z-index:3;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(6,16,14,.7);transition:background .2s}
+.x:hover{background:var(--chilli)}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:26px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px}
+.ings{list-style:none;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin-bottom:26px}
+.ings label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:14.5px}
+.ings input{accent-color:var(--saffron);margin-top:5px;flex:none}
+.ings input:checked+span{opacity:.45;text-decoration:line-through}
+.ings b{font-weight:700}
+.steps{padding-left:22px;display:grid;gap:12px}
+.steps li{padding-left:6px;line-height:1.65}
+.steps li::marker{color:var(--saffron);font-weight:800}
+
+/* ---------- pantry ---------- */
+.pantry{display:grid;grid-template-columns:minmax(0,390px) minmax(0,1fr);gap:24px;align-items:start;padding-bottom:90px}
+.pantry .form{position:sticky;top:calc(var(--nav-h) + 16px)}
+.tagbox{display:flex;flex-wrap:wrap;gap:8px;padding:10px;border-radius:14px;border:1.5px solid var(--line);background:var(--panel-2);transition:border-color .2s}
+.tagbox:focus-within{border-color:var(--saffron)}
+.tagbox input{flex:1;min-width:150px;background:none;border:0;outline:0;padding:4px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 6px 4px 12px;border-radius:999px;background:rgba(246,169,27,.15);color:var(--saffron);font-weight:700;font-size:13px}
+.tag button{display:grid;place-items:center;width:20px;height:20px;border-radius:50%}
+.tag button:hover{background:rgba(246,169,27,.3)}
+.quick,.pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.pills{margin-top:0}
+.dishes{display:grid;gap:16px}
+.dish{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px}
+.dish h3{font-size:24px;font-weight:600;line-height:1.15}
+.dish .why{color:var(--mute);margin:8px 0 12px}
+.dish-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.dish details{margin:4px 0 16px}
+.dish summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--saffron)}
+.dish ol{margin:10px 0 0;padding-left:22px;display:grid;gap:6px;font-size:14.5px}
+.dish-act{display:flex;flex-wrap:wrap;gap:10px}
+.hint-card{border:1.5px dashed var(--line);border-radius:20px;padding:56px 24px;text-align:center;color:var(--mute)}
+.hint-card .i{width:40px;height:40px;color:var(--saffron);display:block;margin:0 auto 12px}
+
+/* ---------- planner ---------- */
+.plan-form{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:12px;align-items:end}
+.plan-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:26px 0 14px}
+.plan-tools h3{font-size:24px;font-weight:600}
+.week{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;padding-bottom:90px}
+.day{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+.day h4{font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:600}
+.meal{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:10px;margin-top:8px;background:var(--panel-2);border:1px solid transparent;transition:border-color .2s;font-weight:600;font-size:14px;line-height:1.35}
+.meal:hover{border-color:var(--saffron)}
+.meal small{display:block;color:var(--mute);font-size:12px;font-weight:600}
+
+/* ---------- chat ---------- */
+.chat{display:flex;flex-direction:column;height:min(780px,calc(100dvh - var(--nav-h) - var(--tabbar-h) - 40px));min-height:460px;max-width:860px;margin:20px auto;background:var(--panel);border:1px solid var(--line);border-radius:24px;overflow:hidden}
+.chat-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--saffron);color:#1b1200;display:grid;place-items:center;flex:none}
+.avatar.sm{width:30px;height:30px;font-size:14px}
+.chat-log{flex:1;overflow-y:auto;padding:22px 20px;display:flex;flex-direction:column;gap:20px}
+.welcome{margin:auto;max-width:560px;text-align:center;padding:10px 0}
+.welcome h2{font-size:34px;font-weight:600;letter-spacing:-.01em}
+.welcome p{color:var(--mute);margin:8px 0 22px}
+.starters{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left}
+.starter{padding:14px 16px;border-radius:14px;border:1.5px solid var(--line);font-size:14px;font-weight:600;line-height:1.4;transition:border-color .2s,background .2s}
+.starter:hover{border-color:var(--saffron);background:rgba(246,169,27,.06)}
+.msg{max-width:94%}
+.msg.user{align-self:flex-end;max-width:82%}
+.msg.user .bubble{background:var(--saffron);color:#1b1200;padding:10px 16px;border-radius:18px 18px 4px 18px;font-weight:600;white-space:pre-wrap;word-break:break-word}
+.msg.bot{align-self:flex-start;display:flex;gap:12px}
+.bot-col{min-width:0;flex:1}
+.md{line-height:1.7;word-break:break-word}
+.md>*+*{margin-top:10px}
+.md h3,.md h4,.md h5{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.25}
+.md h3{font-size:22px}.md h4{font-size:19px}.md h5{font-size:16px}
+.md ul,.md ol{padding-left:22px;display:grid;gap:4px}
+.md li::marker{color:var(--saffron)}
+.md strong{font-weight:800}
+.md code{background:rgba(0,0,0,.3);padding:1px 6px;border-radius:6px;font-size:.9em}
+.md pre{background:rgba(0,0,0,.35);padding:12px;border-radius:12px;overflow-x:auto}
+.md hr{border:0;border-top:1px solid var(--line)}
+.tbl{overflow-x:auto}
+.md table{border-collapse:collapse;font-size:14px;min-width:60%}
+.md th,.md td{border-bottom:1px solid var(--line);padding:7px 14px 7px 0;text-align:left}
+.md th{color:var(--mute);font-weight:700}
+.msg-actions{display:flex;gap:4px;margin-top:6px;opacity:.75}
+.msg-actions button{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--mute)}
+.msg-actions button:hover{background:rgba(255,255,255,.07);color:var(--text)}
+.msg-actions .regen{display:none}
+.chat-log>.msg.bot:last-of-type .regen{display:inline-flex}
+.errbox{align-self:flex-start;max-width:94%;background:rgba(229,83,61,.12);border:1px solid rgba(229,83,61,.4);padding:12px 16px;border-radius:14px;font-size:14px}
+.errbox .btn{margin-top:10px}
+.typing{display:inline-flex;gap:5px;padding:10px 0}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--mute);animation:bounce 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
+.composer{padding:12px 14px 12px;border-top:1px solid var(--line)}
+.composer-box{display:flex;align-items:flex-end;gap:8px;padding:8px 8px 8px 16px;border-radius:18px;background:var(--panel-2);border:1.5px solid var(--line);transition:border-color .2s}
+.composer-box:focus-within{border-color:var(--saffron)}
+.composer textarea{flex:1;resize:none;background:none;border:0;outline:0;max-height:160px;padding:9px 0;line-height:1.5}
+.composer textarea::placeholder{color:var(--mute)}
+.send{width:42px;height:42px;border-radius:12px;background:var(--saffron);color:#1b1200;display:grid;place-items:center;flex:none;transition:background .2s}
+.send.stop{background:var(--chilli);color:#fff}
+.hint{font-size:12px;color:var(--mute);margin-top:8px;text-align:center}
+
+/* ---------- order drawer ---------- */
+#cartDlg[open]{display:flex;justify-content:flex-end}
+.drawer{width:min(450px,100vw);height:100%;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;animation:slide .28s}
+@keyframes slide{from{transform:translateX(30px);opacity:0}}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+.drawer-head h2{font-size:26px;font-weight:600}
+.drawer-body{flex:1;overflow-y:auto;padding:18px 20px}
+.drawer-foot{padding:16px 20px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.citem{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.citem img{width:56px;height:56px;border-radius:12px;object-fit:cover;flex:none}
+.citem b{flex:1;font-weight:700;font-size:14.5px;line-height:1.3}
+.qty{display:flex;align-items:center;gap:2px;border:1.5px solid var(--line);border-radius:10px}
+.qty button{width:30px;height:30px;display:grid;place-items:center;border-radius:8px}
+.qty button:hover{background:rgba(255,255,255,.08)}
+.qty span{min-width:22px;text-align:center;font-weight:800}
+.note{font-size:13px;color:var(--mute);margin-top:10px}
+
+/* ---------- toast ---------- */
+.toasts{position:fixed;left:50%;bottom:calc(24px + var(--tabbar-h) + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:92vw}
+.toast{display:flex;align-items:center;gap:14px;background:#F2EADB;color:#10231F;padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);animation:rise .25s both}
+.toast button{color:#8a5a00;font-weight:800}
+
+/* ---------- responsive ---------- */
+@media (max-width:1040px){
+  .hero{grid-template-columns:1fr;gap:0}
+  .plate{display:none}
+  .plan-form{grid-template-columns:1fr 1fr}
+  .plan-form .btn{grid-column:1/-1}
+}
+@media (max-width:900px){
+  .pantry{grid-template-columns:1fr}
+  .pantry .form{position:static}
+}
+@media (max-width:760px){
+  :root{--tabbar-h:66px}
+  body{padding-bottom:var(--tabbar-h)}
+  .wrap,.top-in{padding-left:16px;padding-right:16px}
+  .tabs{position:fixed;left:0;right:0;bottom:0;margin:0;border:0;border-top:1px solid var(--line);border-radius:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:rgba(11,30,27,.97);justify-content:space-around;z-index:60}
+  .tabs button{flex:1;flex-direction:column;gap:2px;font-size:11.5px;padding:6px 4px;border-radius:12px}
+  .tabs button svg{width:1.4em;height:1.4em}
+  .top-right{margin-left:auto}
+  .status span{display:none}
+  .status{padding:10px}
+  .hero{padding:30px 0 14px}
+  .grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .tile-cap{padding:40px 52px 12px 12px}
+  .tile-cap h3{font-size:16px}
+  .tile.feature{min-height:260px}
+  .tile.feature .tile-cap h3{font-size:22px}
+  .sheet{grid-template-columns:1fr;overflow-y:auto;max-height:94dvh;border-radius:20px}
+  .sheet-media{height:220px;min-height:0}
+  .sheet-body{overflow:visible;max-height:none;padding:22px 20px 28px}
+  .ings{grid-template-columns:1fr}
+  .chat{margin:0 auto;border-radius:0;border-left:0;border-right:0;height:calc(100dvh - var(--nav-h) - var(--tabbar-h))}
+  .starters{grid-template-columns:1fr}
+  .plan-form{grid-template-columns:1fr}
+  .welcome h2{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+
+<body>
+<noscript><p style="padding:24px">Recipedia Pro needs JavaScript. Please enable it and reload.</p></noscript>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#discover" id="brand"><span class="logo"><i data-i="chef"></i></span>Recipedia Pro</a>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" data-tab="discover" aria-selected="true"><i data-i="search"></i><span>Discover</span></button>
+      <button role="tab" data-tab="pantry" aria-selected="false"><i data-i="leaf"></i><span>Pantry</span></button>
+      <button role="tab" data-tab="planner" aria-selected="false"><i data-i="calendar"></i><span>Planner</span></button>
+      <button role="tab" data-tab="chat" aria-selected="false"><i data-i="message"></i><span>Chef Chat</span></button>
+    </nav>
+    <div class="top-right">
+      <button class="status" id="status" type="button"><i class="dot"></i><span id="statusText">Checking</span></button>
+      <button class="cart-btn" id="cartBtn" type="button" aria-label="Open your order"><i data-i="bag"></i><span class="badge" id="cartCount" hidden>0</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="setup" id="setup" hidden>
+  <div class="wrap"><i data-i="alert"></i><div><strong>Chef AI is not connected.</strong> <span id="setupMsg"></span></div></div>
+</div>
+
+<main>
+  <!-- DISCOVER -->
+  <section class="panel on" id="p-discover" role="tabpanel">
+    <div class="wrap">
+      <div class="hero">
+        <div>
+          <h1>What are we cooking tonight?</h1>
+          <p>Search thousands of dishes, ask the chef, or plan your week. Add anything to your order and send it straight to WhatsApp.</p>
+          <form class="search" id="searchForm" role="search">
+            <i data-i="search"></i>
+            <input id="q" type="text" placeholder="Try pasta, biryani or tacos" autocomplete="off" enterkeyhint="search" aria-label="Search recipes">
+            <button class="btn btn-primary" type="submit">Search</button>
+          </form>
+          <div class="hero-actions"><button class="btn btn-ghost" id="surprise" type="button"><i data-i="shuffle"></i> Surprise me</button></div>
+        </div>
+        <button class="plate" id="plate" type="button" hidden aria-label="Open the featured recipe">
+          <span class="plate-in"><img id="plateImg" alt=""></span>
+          <span class="plate-cap" id="plateCap"></span>
+        </button>
+      </div>
+      <div class="chips" id="chips" role="group" aria-label="Browse by category"></div>
+      <div class="bar"><h2 id="resultTitle">Popular right now</h2><span class="mute small" id="resultCount"></span></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <!-- PANTRY -->
+  <section class="panel" id="p-pantry" role="tabpanel">
+    <div class="wrap">
+      <div class="page-head">
+        <h2>What’s in your kitchen?</h2>
+        <p>List what you have and how you feel. The chef suggests three dishes you can make right now.</p>
+      </div>
+      <div class="pantry">
+        <div class="card form">
+          <label class="lbl" for="pIn">Ingredients</label>
+          <div class="tagbox" id="tagbox"><input id="pIn" placeholder="Type an ingredient, press Enter" autocomplete="off"></div>
+          <div class="quick" id="quick"></div>
+          <span class="lbl">Mood</span>
+          <div class="pills" id="moods"></div>
+          <label class="lbl" for="pDiet">Diet</label>
+          <select class="field" id="pDiet">
+            <option value="">Any diet</option>
+            <option>Vegetarian</option><option>Vegan</option><option>High protein</option>
+            <option>Low carb</option><option>Gluten free</option><option>Indian home style</option>
+          </select>
+          <button class="btn btn-primary wide" id="pGo" type="button" style="margin-top:20px"><i data-i="sparkles"></i> Suggest 3 dishes</button>
+        </div>
+        <div class="dishes" id="pOut">
+          <div class="hint-card"><i data-i="chef"></i><strong class="serif" style="font-size:20px;color:var(--text)">Your dish ideas appear here</strong><p>Add a few ingredients to begin.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANNER -->
+  <section class="panel" id="p-planner" role="tabpanel">
+    <div class="wrap">
+      <div class="page-head">
+        <h2>Plan your week</h2>
+        <p>Get seven days of breakfast, lunch and dinner. Tap any meal to get its recipe from the chef.</p>
+      </div>
+      <div class="card">
+        <div class="plan-form">
+          <div><label class="lbl" for="plDiet">Diet</label>
+            <select class="field" id="plDiet">
+              <option value="">Any diet</option>
+              <option>Vegetarian</option><option>Vegan</option><option>High protein</option>
+              <option>Low carb</option><option>Indian cuisine</option><option>Mediterranean</option>
+            </select></div>
+          <div><label class="lbl" for="plGoal">Goal</label>
+            <input class="field" id="plGoal" placeholder="Weight loss, muscle gain, more energy" autocomplete="off"></div>
+          <button class="btn btn-primary" id="plGo" type="button"><i data-i="sparkles"></i> Generate plan</button>
+        </div>
+      </div>
+      <div id="plOut"></div>
+    </div>
+  </section>
+
+  <!-- CHEF CHAT -->
+  <section class="panel" id="p-chat" role="tabpanel">
+    <div class="chat">
+      <div class="chat-head">
+        <span class="avatar"><i data-i="chef"></i></span>
+        <div><strong>Chef Chat</strong><div class="mute small" id="modelName"></div></div>
+        <button class="btn btn-ghost sm" id="newChat" type="button" style="margin-left:auto"><i data-i="trash"></i> New chat</button>
+      </div>
+      <div class="chat-log" id="log" aria-live="polite">
+        <div class="welcome" id="welcome">
+          <h2>Ask the chef</h2>
+          <p>Describe what you have, your diet, or a dish you want to make. Follow up to change anything.</p>
+          <div class="starters" id="starters"></div>
+        </div>
+      </div>
+      <form class="composer" id="composer">
+        <div class="composer-box">
+          <textarea id="msg" rows="1" placeholder="Ask about a recipe, a swap, or a menu" aria-label="Message the chef"></textarea>
+          <button class="send" id="send" type="submit" aria-label="Send"></button>
+        </div>
+        <p class="hint">Enter to send. Shift+Enter for a new line.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<!-- RECIPE SHEET -->
+<dialog id="dlg" aria-labelledby="dlgTitle"><div class="sheet" id="sheet"></div></dialog>
+
+<!-- ORDER DRAWER -->
+<dialog id="cartDlg" aria-label="Your order">
+  <div class="drawer">
+    <div class="drawer-head"><h2>Your order</h2><button class="btn btn-ghost sm" data-close aria-label="Close order"><i data-i="x"></i></button></div>
+    <div class="drawer-body">
+      <div id="cartItems"></div>
+      <div id="cartForm">
+        <label class="lbl" for="cName">Your name</label>
+        <input class="field" id="cName" autocomplete="name" placeholder="Name for the order">
+        <label class="lbl" for="cMode">Order type</label>
+        <select class="field" id="cMode"><option>Delivery</option><option>Pickup</option><option>Dine-in</option></select>
+        <div id="cAddrWrap">
+          <label class="lbl" for="cAddr">Delivery address</label>
+          <textarea class="field" id="cAddr" autocomplete="street-address" placeholder="House, street, landmark, city"></textarea>
+        </div>
+        <label class="lbl" for="cNotes">Notes (optional)</label>
+        <textarea class="field" id="cNotes" placeholder="Spice level, allergies, timing"></textarea>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn btn-wa wide" id="sendOrder" type="button"><i data-i="whatsapp"></i> Send order on WhatsApp</button>
+      <p class="note" id="waNote"></p>
+      <button class="btn btn-ghost sm" id="clearCart" type="button" style="margin-top:10px">Clear order</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="config.js"></script>
+<script>
+'use strict';
+/* =====================================================
+   CONFIG (from config.js)
+===================================================== */
+const CFG        = window.RECIPEDIA_CONFIG || {};
+const MEALDB_KEY = String(CFG.MEALDB_API_KEY || '1').trim();
+const WA_NUM     = String(CFG.WHATSAPP_NUMBER || '').replace(/\D/g, '');
+const MDB        = 'https://www.themealdb.com/api/json/v1/' + encodeURIComponent(MEALDB_KEY);
+const AI_URL     = '/api/chat';   // serverless proxy; holds the Groq key and model
+
+// AI status comes from the server (GET /api/chat), not from the browser.
+function setupIssue() { return state.ai.ok === false ? state.ai.msg : ''; }
+const aiReady = () => state.ai.ok !== false;
+
+/* =====================================================
+   HELPERS
+===================================================== */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+const PATHS = {
+  search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  copy: '<rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  message: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  whatsapp: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9 10c0 3 2 5 5 5l1.2-1.2a.8.8 0 0 0 0-1l-1.3-.9a.8.8 0 0 0-1 .1l-.4.4c-.9-.4-1.6-1.1-2-2l.4-.4a.8.8 0 0 0 .1-1l-.9-1.3a.8.8 0 0 0-1 0Z"/>',
+  sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
+  chef: '<path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/><path d="M6 17h12"/>',
+  shuffle: '<path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/>',
+  play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  leaf: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>',
+  bag: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  minus: '<path d="M5 12h14"/>',
+  alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  wifi: '<path d="M12 20h.01"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 5.2-2.8"/><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="m2 2 20 20"/>'
+};
+const ico = (n, c = '') => `<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true">${PATHS[n] || ''}</svg>`;
+const hydrate = (root = document) => $$('i[data-i]', root).forEach(el => { el.outerHTML = ico(el.dataset.i); });
+
+function toast(msg, action) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.append(document.createTextNode(msg));
+  if (action) {
+    const b = document.createElement('button');
+    b.textContent = action.label;
+    b.onclick = () => { action.fn(); el.remove(); };
+    el.append(b);
+  }
+  $('#toasts').append(el);
+  setTimeout(() => el.remove(), action ? 6000 : 2600);
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const t = document.createElement('textarea');
+    t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.append(t); t.select();
+    try { document.execCommand('copy'); } catch {}
+    t.remove();
+  }
+  toast('Copied');
+}
+const openWA = (text, number = '') => window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+
+/* =====================================================
+   STATE
+===================================================== */
+const state = {
+  tab: 'discover', cat: '', saved: false, cats: [], req: 0, firstRender: true,
+  favs: store.get('rp_favs', {}),
+  chat: store.get('rp_chat', []),
+  cart: store.get('rp_cart', []),
+  cust: store.get('rp_cust', { name: '', mode: 'Delivery', address: '', notes: '' }),
+  plan: store.get('rp_plan', null),
+  streaming: false, abort: null, open: null, lastLoad: null,
+  ai: { ok: null, model: '', msg: '' }
+};
+const cache = new Map();
+const DEFAULT_CATS = ['Beef', 'Chicken', 'Dessert', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Side', 'Starter', 'Vegan', 'Vegetarian', 'Breakfast'];
+
+/* =====================================================
+   SETUP BANNER + STATUS
+===================================================== */
+function renderSetup() {
+  const msg = setupIssue(), checking = state.ai.ok === null;
+  $('#setup').hidden = !msg;
+  $('#setupMsg').textContent = msg;
+  $('#status').classList.toggle('ok', state.ai.ok === true);
+  $('#statusText').textContent = checking ? 'Checking' : msg ? 'Setup needed' : 'Chef online';
+  $('#modelName').textContent = checking ? 'Connecting' : msg ? 'Not connected' : state.ai.model;
+}
+async function checkAI() {
+  try {
+    const r = await fetch(AI_URL, { cache: 'no-store' });
+    const j = await r.json();
+    state.ai = j.ok
+      ? { ok: true, model: j.model || '', msg: '' }
+      : { ok: false, model: '', msg: 'GROQ_API_KEY is not set on the server. Add it in Vercel (Settings, Environment Variables) and redeploy.' };
+  } catch {
+    state.ai = { ok: false, model: '', msg: 'The /api/chat function is not reachable. Deploy to Vercel or run "vercel dev". Opening the HTML file directly will not work.' };
+  }
+  renderSetup();
+}
+$('#status').addEventListener('click', () => {
+  const msg = setupIssue();
+  if (msg) { window.scrollTo({ top: 0, behavior: 'smooth' }); toast(msg); }
+  else if (state.ai.ok) toast('Connected to Groq: ' + state.ai.model);
+  else checkAI();
+});
+
+/* =====================================================
+   TABS
+===================================================== */
+const TABS = ['discover', 'pantry', 'planner', 'chat'];
+function setTab(name, push = true) {
+  if (!TABS.includes(name)) name = 'discover';
+  state.tab = name;
+  $$('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  $$('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + name));
+  if (push) { try { history.replaceState(null, '', '#' + name); } catch {} }
+  window.scrollTo({ top: 0 });
+  if (name === 'chat') {
+    stickLog(true);
+    if (matchMedia('(pointer:fine)').matches) $('#msg').focus({ preventScroll: true });
+  }
+}
+$$('.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+$('#brand').addEventListener('click', e => { e.preventDefault(); setTab('discover'); });
+
+/* =====================================================
+   MEALDB
+===================================================== */
+async function mdb(path) {
+  const r = await fetch(`${MDB}/${path}`);
+  if (!r.ok) throw new Error('TheMealDB ' + r.status);
+  const t = await r.text();
+  try { return JSON.parse(t); } catch { return {}; }
+}
+const ingredientsOf = m => {
+  const out = [];
+  for (let i = 1; i <= 20; i++) {
+    const n = (m['strIngredient' + i] || '').trim();
+    if (!n) continue;
+    out.push({ n, q: (m['strMeasure' + i] || '').trim() });
+  }
+  return out;
+};
+function toSteps(text) {
+  let parts = String(text || '').split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
+  parts = parts.filter(p => !/^step\s*\d+\s*:?$/i.test(p)).map(p => p.replace(/^(step\s*)?\d+[.):\-]\s*/i, ''));
+  if (parts.length <= 2) {
+    const sentences = parts.join(' ').match(/[^.!?]+[.!?]+(\s|$)/g) || parts;
+    const out = []; let buf = '';
+    sentences.forEach(s => { buf += s; if (buf.length > 110) { out.push(buf.trim()); buf = ''; } });
+    if (buf.trim()) out.push(buf.trim());
+    return out;
+  }
+  return parts;
+}
+
+/* ---------- chips / grid ---------- */
+function renderChips() {
+  const n = Object.keys(state.favs).length;
+  $('#chips').innerHTML =
+    `<button class="chip" data-saved aria-pressed="${state.saved}">${ico('heart')} Saved${n ? ` (${n})` : ''}</button>` +
+    state.cats.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${state.cat === c}">${esc(c)}</button>`).join('');
+}
+$('#chips').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  if (b.hasAttribute('data-saved')) {
+    if (state.saved) { defaultView(); } else showSaved();
+  } else {
+    const c = b.dataset.cat;
+    if (state.cat === c) defaultView(); else showCategory(c);
+  }
+});
+
+function skeletons() {
+  $('#grid').innerHTML = Array.from({ length: 8 }, () => '<div class="tile skel"></div>').join('');
+}
+async function loadGrid(title, fetcher) {
+  const id = ++state.req;
+  state.lastLoad = () => loadGrid(title, fetcher);
+  $('#resultTitle').textContent = title;
+  $('#resultCount').textContent = '';
+  skeletons();
+  try {
+    const meals = await fetcher();
+    if (id !== state.req) return;
+    renderGrid(meals);
+  } catch (e) {
+    if (id !== state.req) return;
+    $('#grid').innerHTML = `<div class="empty">${ico('wifi')}<h3>Can’t reach TheMealDB</h3><p>Check your connection and try again.</p><button class="btn btn-primary" id="retry">Try again</button></div>`;
+    $('#retry').onclick = () => state.lastLoad && state.lastLoad();
+  }
+}
+function renderGrid(meals) {
+  const grid = $('#grid');
+  if (!meals.length) {
+    grid.innerHTML = state.saved
+      ? `<div class="empty">${ico('heart')}<h3>Nothing saved yet</h3><p>Tap the heart on any recipe to keep it here.</p></div>`
+      : `<div class="empty">${ico('search')}<h3>No recipes found</h3><p>Try a different dish name, or use the category chips above.</p></div>`;
+    return;
+  }
+  $('#resultCount').textContent = `${meals.length} ${meals.length === 1 ? 'recipe' : 'recipes'}`;
+  grid.innerHTML = '';
+  const first = state.firstRender; state.firstRender = false;
+  meals.forEach((m, i) => {
+    cache.set(m.idMeal, { ...(cache.get(m.idMeal) || {}), ...m });
+    const el = document.createElement('article');
+    el.className = 'tile' + (i === 0 && meals.length > 2 ? ' feature' : '') + (first ? ' reveal' : '');
+    if (first) el.style.animationDelay = Math.min(i, 12) * 45 + 'ms';
+    el.dataset.id = m.idMeal;
+    const sub = m.strArea ? m.strArea + ' cuisine' : (m.strCategory || '');
+    const fav = !!state.favs[m.idMeal];
+    el.innerHTML = `
+      <button class="tile-main" data-act="open" aria-label="Open ${esc(m.strMeal)}">
+        <img src="${esc(m.strMealThumb)}/medium" data-full="${esc(m.strMealThumb)}" alt="" loading="lazy">
+        <span class="tile-cap"><h3>${esc(m.strMeal)}</h3><small>${esc(sub)}</small></span>
+      </button>
+      <button class="tile-act tile-fav ${fav ? 'on' : ''}" data-act="fav" aria-label="Save ${esc(m.strMeal)}" aria-pressed="${fav}">${ico('heart')}</button>
+      <button class="tile-act tile-order" data-act="order" aria-label="Add ${esc(m.strMeal)} to your order">${ico('plus')}</button>`;
+    grid.append(el);
+  });
+}
+$('#grid').addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const m = cache.get(btn.closest('.tile').dataset.id); if (!m) return;
+  if (btn.dataset.act === 'open') openMeal(m);
+  if (btn.dataset.act === 'fav') { toggleFav(m); btn.classList.toggle('on', !!state.favs[m.idMeal]); btn.setAttribute('aria-pressed', String(!!state.favs[m.idMeal])); }
+  if (btn.dataset.act === 'order') { addToCart(m); toast(`${m.strMeal} added`, { label: 'View order', fn: openCart }); }
+});
+document.addEventListener('error', e => {
+  const t = e.target;
+  if (t.tagName === 'IMG' && t.dataset.full && t.src !== t.dataset.full) t.src = t.dataset.full;
+}, true);
+
+function defaultView() {
+  state.cat = ''; state.saved = false; renderChips();
+  loadGrid('Popular right now', async () => (await mdb('search.php?s=chicken')).meals || []);
+}
+async function showSearch(q) {
+  q = q.trim(); if (!q) return;
+  state.cat = ''; state.saved = false; renderChips();
+  await loadGrid(`Results for “${q}”`, async () => (await mdb('search.php?s=' + encodeURIComponent(q))).meals || []);
+}
+async function showCategory(c) {
+  state.cat = c; state.saved = false; renderChips();
+  await loadGrid(c, async () => ((await mdb('filter.php?c=' + encodeURIComponent(c))).meals || []).map(m => ({ ...m, strCategory: c })));
+}
+function showSaved() {
+  state.cat = ''; state.saved = true; renderChips();
+  state.req++; state.lastLoad = showSaved;
+  $('#resultTitle').textContent = 'Saved recipes';
+  renderGrid(Object.values(state.favs));
+}
+function toggleFav(m) {
+  if (state.favs[m.idMeal]) delete state.favs[m.idMeal];
+  else state.favs[m.idMeal] = m;
+  store.set('rp_favs', state.favs);
+  renderChips();
+  if (state.saved) showSaved();
+}
+
+$('#searchForm').addEventListener('submit', e => { e.preventDefault(); showSearch($('#q').value); });
+$('#q').addEventListener('input', debounce(() => { const v = $('#q').value.trim(); if (v.length >= 3) showSearch(v); }, 550));
+$('#surprise').addEventListener('click', async () => {
+  try {
+    const m = (await mdb('random.php')).meals?.[0];
+    if (m) { cache.set(m.idMeal, m); openMeal(m); }
+  } catch { toast('Could not reach TheMealDB'); }
+});
+
+/* ---------- hero plate ---------- */
+async function initPlate() {
+  try {
+    const m = (await mdb('random.php')).meals?.[0]; if (!m) return;
+    cache.set(m.idMeal, m);
+    $('#plateImg').src = m.strMealThumb + '/large';
+    $('#plateImg').dataset.full = m.strMealThumb;
+    $('#plateCap').textContent = m.strMeal;
+    $('#plate').hidden = false;
+    $('#plate').onclick = () => openMeal(m);
+  } catch {}
+}
+
+/* ---------- recipe sheet ---------- */
+const dlg = $('#dlg'), sheet = $('#sheet');
+function closeDlg(d) { if (d.open) d.close(); }
+[dlg, $('#cartDlg')].forEach(d => {
+  d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-close]')) closeDlg(d); });
+  d.addEventListener('close', () => { if (!$$('dialog[open]').length) document.documentElement.classList.remove('lock'); });
+});
+function showDialog(d) { if (!d.open) d.showModal(); document.documentElement.classList.add('lock'); }
+
+async function openMeal(m) {
+  state.open = m;
+  sheet.innerHTML = `<button class="x" data-close aria-label="Close">${ico('x')}</button><div class="sheet-media skel"></div><div class="sheet-body"><div class="skel" style="height:34px;border-radius:10px;width:70%"></div><div class="skel" style="height:16px;border-radius:8px;margin-top:18px"></div><div class="skel" style="height:16px;border-radius:8px;margin-top:10px;width:85%"></div></div>`;
+  showDialog(dlg);
+  try {
+    if (!m.strInstructions) {
+      const full = cache.get(m.idMeal);
+      if (full && full.strInstructions) m = full;
+      else {
+        const d = await mdb('lookup.php?i=' + encodeURIComponent(m.idMeal));
+        if (!d.meals?.[0]) throw new Error('Recipe not found');
+        m = { ...m, ...d.meals[0] };
+      }
+    }
+    cache.set(m.idMeal, m);
+    if (state.favs[m.idMeal]) { state.favs[m.idMeal] = m; store.set('rp_favs', state.favs); }
+    state.open = m;
+    renderSheet(m);
+  } catch (e) {
+    sheet.innerHTML = `<button class="x" data-close aria-label="Close">${ico('x')}</button><div class="sheet-body" style="grid-column:1/-1"><div class="empty">${ico('wifi')}<h3>Could not load this recipe</h3><p>${esc(e.message)}</p></div></div>`;
+  }
+}
+function renderSheet(m) {
+  const ings = ingredientsOf(m);
+  const steps = toSteps(m.strInstructions);
+  const tags = [m.strArea, m.strCategory, ...(m.strTags || '').split(',')].map(t => (t || '').trim()).filter(Boolean).slice(0, 5);
+  const fav = !!state.favs[m.idMeal];
+  sheet.innerHTML = `
+    <button class="x" data-close aria-label="Close">${ico('x')}</button>
+    <div class="sheet-media"><img src="${esc(m.strMealThumb)}" alt="${esc(m.strMeal)}"></div>
+    <div class="sheet-body">
+      <h2 id="dlgTitle">${esc(m.strMeal)}</h2>
+      <div class="tags">${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</div>
+      <div class="actions">
+        <button class="btn btn-wa" data-s="order">${ico('whatsapp')} Add to order</button>
+        <button class="btn btn-primary" data-s="ask">${ico('chef')} Ask the chef</button>
+        <button class="btn btn-ghost ${fav ? 'on' : ''}" data-s="fav">${ico('heart')} ${fav ? 'Saved' : 'Save'}</button>
+        ${m.strYoutube ? `<a class="btn btn-ghost" href="${esc(m.strYoutube)}" target="_blank" rel="noopener">${ico('play')} Watch</a>` : ''}
+      </div>
+      <div class="sec-head"><h3>Ingredients</h3><button class="btn btn-ghost sm" data-s="copy">${ico('copy')} Copy list</button></div>
+      <ul class="ings">${ings.map(i => `<li><label><input type="checkbox"><span><b>${esc(i.q)}</b> ${esc(i.n)}</span></label></li>`).join('')}</ul>
+      <h3 style="margin-bottom:12px">Method</h3>
+      <ol class="steps">${steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+    </div>`;
+}
+sheet.addEventListener('click', e => {
+  const b = e.target.closest('[data-s]'); const m = state.open; if (!b || !m) return;
+  const act = b.dataset.s;
+  if (act === 'order') { closeDlg(dlg); addToCart(m); openCart(); }
+  if (act === 'ask') {
+    closeDlg(dlg); setTab('chat');
+    const ing = ingredientsOf(m).map(i => `${i.q} ${i.n}`.trim()).join(', ');
+    sendChat(`Help me cook ${m.strMeal}. Give me tips, timing, and easy substitutions.`, `Recipe: ${m.strMeal} (${m.strArea || ''} ${m.strCategory || ''}). Ingredients: ${ing}.`);
+  }
+  if (act === 'fav') { toggleFav(m); renderSheet(m); }
+  if (act === 'copy') copyText(ingredientsOf(m).map(i => `${i.q} ${i.n}`.trim()).join('\n'));
+});
+
+/* =====================================================
+   WHATSAPP ORDERING
+===================================================== */
+function saveCart() {
+  store.set('rp_cart', state.cart);
+  const n = state.cart.reduce((a, i) => a + i.qty, 0);
+  $('#cartCount').textContent = n;
+  $('#cartCount').hidden = !n;
+}
+function addToCart(m, qty = 1) {
+  const it = state.cart.find(i => i.id === m.idMeal);
+  if (it) it.qty += qty;
+  else state.cart.push({ id: m.idMeal, name: m.strMeal, thumb: m.strMealThumb, qty });
+  saveCart();
+}
+function renderCart() {
+  const box = $('#cartItems');
+  if (!state.cart.length) {
+    box.innerHTML = `<div class="empty" style="padding:36px 10px">${ico('bag')}<h3>Your order is empty</h3><p>Tap the plus on any recipe to add it.</p></div>`;
+  } else {
+    box.innerHTML = state.cart.map(i => `
+      <div class="citem" data-id="${esc(i.id)}">
+        <img src="${esc(i.thumb)}/small" data-full="${esc(i.thumb)}" alt="">
+        <b>${esc(i.name)}</b>
+        <div class="qty"><button data-q="-1" aria-label="Remove one">${ico('minus')}</button><span>${i.qty}</span><button data-q="1" aria-label="Add one">${ico('plus')}</button></div>
+      </div>`).join('');
+  }
+  $('#cartForm').hidden = !state.cart.length;
+  $('#sendOrder').disabled = !state.cart.length;
+  $('#clearCart').hidden = !state.cart.length;
+  $('#waNote').textContent = WA_NUM ? `Orders go straight to WhatsApp +${WA_NUM}.` : 'No restaurant number set. Add WHATSAPP_NUMBER in config.js to send orders directly. Until then WhatsApp will ask you to pick a contact.';
+  $('#cName').value = state.cust.name || '';
+  $('#cMode').value = state.cust.mode || 'Delivery';
+  $('#cAddr').value = state.cust.address || '';
+  $('#cNotes').value = state.cust.notes || '';
+  $('#cAddrWrap').hidden = $('#cMode').value !== 'Delivery';
+}
+function openCart() { renderCart(); showDialog($('#cartDlg')); }
+$('#cartBtn').addEventListener('click', openCart);
+$('#cartItems').addEventListener('click', e => {
+  const b = e.target.closest('[data-q]'); if (!b) return;
+  const id = b.closest('.citem').dataset.id;
+  const it = state.cart.find(i => i.id === id); if (!it) return;
+  it.qty += Number(b.dataset.q);
+  if (it.qty <= 0) state.cart = state.cart.filter(i => i.id !== id);
+  saveCart(); renderCart();
+});
+const saveCust = () => {
+  state.cust = { name: $('#cName').value, mode: $('#cMode').value, address: $('#cAddr').value, notes: $('#cNotes').value };
+  store.set('rp_cust', state.cust);
+  $('#cAddrWrap').hidden = state.cust.mode !== 'Delivery';
+};
+['#cName', '#cMode', '#cAddr', '#cNotes'].forEach(s => $(s).addEventListener('input', saveCust));
+$('#clearCart').addEventListener('click', () => {
+  const backup = state.cart; state.cart = []; saveCart(); renderCart();
+  toast('Order cleared', { label: 'Undo', fn: () => { state.cart = backup; saveCart(); renderCart(); } });
+});
+$('#sendOrder').addEventListener('click', () => {
+  saveCust();
+  const c = state.cust;
+  if (!c.name.trim()) { toast('Add your name first'); $('#cName').focus(); return; }
+  if (c.mode === 'Delivery' && !c.address.trim()) { toast('Add a delivery address'); $('#cAddr').focus(); return; }
+  const lines = [
+    '*New order from Recipedia Pro*', '',
+    `Name: ${c.name.trim()}`,
+    `Type: ${c.mode}`,
+    ...(c.mode === 'Delivery' ? [`Address: ${c.address.trim()}`] : []),
+    '', '*Items*',
+    ...state.cart.map(i => `${i.qty} x ${i.name}`),
+    ...(c.notes.trim() ? ['', `Notes: ${c.notes.trim()}`] : []),
+    '', 'Please confirm availability, price and time. Thank you!'
+  ];
+  openWA(lines.join('\n'), WA_NUM);
+  toast('Order opened in WhatsApp. Press send there to place it.');
+});
+
+/* =====================================================
+   GROQ
+===================================================== */
+function friendly(status, msg) {
+  if (status === 404 || status === 405) return 'The /api/chat function was not found. Deploy to Vercel or run "vercel dev".';
+  if (status === 429) return 'Rate limit reached. Wait a minute and try again.';
+  if (status === 413) return 'That request was too long. Start a new chat and try again.';
+  if (status >= 500) return `The chef server is having trouble (${status}). Try again shortly.`;
+  return msg || `Request failed (${status}).`;
+}
+async function apiError(res) {
+  let j = {}; try { j = await res.json(); } catch {}
+  const msg = j.error?.message || '';
+  const e = new Error(j.error?.proxy && msg ? msg : friendly(res.status, msg));
+  e.status = res.status; e.raw = msg; return e;
+}
+async function groqFetch(messages, o = {}) {
+  let res;
+  try {
+    res = await fetch(AI_URL, {
+      method: 'POST', signal: o.signal, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, temperature: o.temperature ?? 0.7, max_tokens: o.max_tokens || 2048, stream: !!o.stream })
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    const e = new Error('Cannot reach the chef server. Check your connection, or deploy to Vercel / run "vercel dev".'); e.status = 0; throw e;
+  }
+  if (!res.ok) throw await apiError(res);
+  return res;
+}
+async function groqChat(messages, o) {
+  const res = await groqFetch(messages, { ...o, stream: false });
+  const j = await res.json();
+  return j.choices?.[0]?.message?.content || '';
+}
+async function groqStream(messages, { signal, onToken }) {
+  const res = await groqFetch(messages, { signal, stream: true });
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, idx).trim(); buf = buf.slice(idx + 1);
+      if (!line.startsWith('data:')) continue;
+      const d = line.slice(5).trim();
+      if (d === '[DONE]') return;
+      try {
+        const j = JSON.parse(d);
+        if (j.error) throw new Error(j.error.message || 'Stream error');
+        const t = j.choices?.[0]?.delta?.content;
+        if (t) onToken(t);
+      } catch (err) { if (err.message && !(err instanceof SyntaxError)) throw err; }
+    }
+  }
+}
+function extractJSON(t) {
+  t = String(t).replace(/```(?:json)?/gi, '').trim();
+  const a = t.search(/[\[{]/); if (a < 0) return null;
+  const close = t[a] === '{' ? '}' : ']';
+  const b = t.lastIndexOf(close); if (b < a) return null;
+  try { return JSON.parse(t.slice(a, b + 1)); } catch { return null; }
+}
+async function askJSON(prompt) {
+  const msgs = [
+    { role: 'system', content: 'You reply with valid JSON only. No markdown, no code fences, no commentary.' },
+    { role: 'user', content: prompt }
+  ];
+  for (let i = 0; i < 2; i++) {
+    const obj = extractJSON(await groqChat(msgs, { temperature: 0.4, max_tokens: 2500 }));
+    if (obj) return obj;
+  }
+  throw new Error('The chef sent a reply that could not be read. Try again.');
+}
+
+/* =====================================================
+   MARKDOWN (safe: escapes HTML first)
+===================================================== */
+function md(src) {
+  const lines = esc(src).replace(/\r/g, '').split('\n');
+  const inl = s => s
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s).,!?:;]|$)/g, '$1<em>$2</em>');
+  const isUl = l => /^\s*[-*•]\s+/.test(l), isOl = l => /^\s*\d+[.)]\s+/.test(l);
+  const isTbl = l => /^\s*\|.*\|\s*$/.test(l), isH = l => /^#{1,4}\s+/.test(l);
+  const isHr = l => /^\s*([-*_])\1{2,}\s*$/.test(l), isFence = l => l.trim().startsWith('```');
+  let h = '', i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    if (isFence(l)) {
+      const buf = []; i++;
+      while (i < lines.length && !isFence(lines[i])) { buf.push(lines[i]); i++; }
+      i++; h += `<pre><code>${buf.join('\n')}</code></pre>`; continue;
+    }
+    let m;
+    if ((m = l.match(/^(#{1,4})\s+(.*)$/))) { const n = Math.min(m[1].length + 2, 5); h += `<h${n}>${inl(m[2])}</h${n}>`; i++; continue; }
+    if (isHr(l)) { h += '<hr>'; i++; continue; }
+    if (isTbl(l)) {
+      const rows = [];
+      while (i < lines.length && isTbl(lines[i])) { rows.push(lines[i]); i++; }
+      const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+      const sep = rows.length > 1 && /^[\s|:-]+$/.test(rows[1]);
+      const head = cells(rows[0]), body = rows.slice(sep ? 2 : 1).map(cells);
+      h += '<div class="tbl"><table><thead><tr>' + head.map(c => `<th>${inl(c)}</th>`).join('') + '</tr></thead><tbody>' +
+        body.map(r => '<tr>' + r.map(c => `<td>${inl(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table></div>';
+      continue;
+    }
+    if (isUl(l) || isOl(l)) {
+      const ordered = isOl(l), test = ordered ? isOl : isUl;
+      const strip = ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*•]\s+/;
+      const start = ordered ? parseInt(l.match(/\d+/)[0], 10) : 1;
+      const items = [];
+      for (;;) {
+        if (i < lines.length && test(lines[i])) {
+          items.push(lines[i].replace(strip, '')); i++;
+          while (i < lines.length && lines[i].trim() && /^\s{2,}\S/.test(lines[i]) && !isUl(lines[i]) && !isOl(lines[i])) { items[items.length - 1] += ' ' + lines[i].trim(); i++; }
+          continue;
+        }
+        let j = i; while (j < lines.length && !lines[j].trim()) j++;
+        if (j > i && j < lines.length && test(lines[j])) { i = j; continue; }
+        break;
+      }
+      h += (ordered ? `<ol start="${start}">` : '<ul>') + items.map(t => `<li>${inl(t)}</li>`).join('') + (ordered ? '</ol>' : '</ul>');
+      continue;
+    }
+    const buf = [];
+    while (i < lines.length && lines[i].trim() && !isH(lines[i]) && !isHr(lines[i]) && !isTbl(lines[i]) && !isUl(lines[i]) && !isOl(lines[i]) && !isFence(lines[i])) { buf.push(lines[i]); i++; }
+    if (!buf.length) { buf.push(lines[i]); i++; }
+    h += `<p>${inl(buf.join('<br>'))}</p>`;
+  }
+  return h;
+}
+
+/* =====================================================
+   CHEF CHAT
+===================================================== */
+const SYSTEM_PROMPT = `You are "Chef Recipedia", a warm, practical cooking assistant inside the Recipedia Pro app.
+- Create recipes from the ingredients, diet, cuisine, mood or time the user gives you.
+- For a full recipe use: a short title, one line description, prep and cook time, servings, an ingredient list with quantities, numbered steps, and a brief nutrition estimate per serving (calories, protein, carbs, fat).
+- Remember the conversation. If the user says "make it vegan", "double it" or "swap the onion", change the most recent recipe instead of starting over.
+- Respect allergies and dietary restrictions strictly, for the whole conversation. If something conflicts, say so and offer a safe alternative.
+- If a question is not about food or cooking, politely steer back to cooking.
+- Keep answers concise and friendly. Use simple markdown (short headings, lists). Mention food safety when relevant.`;
+const STARTERS = [
+  'I have eggs, rice and spinach. What can I cook in 20 minutes?',
+  'Plan a high-protein vegetarian dinner for four people.',
+  'How can I make butter chicken lighter without losing flavour?',
+  'What can I use instead of paneer in palak paneer?'
+];
+const log = $('#log'), msgBox = $('#msg'), sendBtn = $('#send');
+const nearBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 140;
+function stickLog(force) { if (force || nearBottom()) log.scrollTop = log.scrollHeight; }
+const saveChat = () => store.set('rp_chat', state.chat.slice(-40));
+
+function setSendMode(streaming) {
+  sendBtn.classList.toggle('stop', streaming);
+  sendBtn.innerHTML = ico(streaming ? 'stop' : 'send');
+  sendBtn.setAttribute('aria-label', streaming ? 'Stop reply' : 'Send');
+}
+function updateWelcome() { $('#welcome').hidden = state.chat.length > 0 || state.streaming; }
+
+function appendMsg(m) {
+  const el = document.createElement('div');
+  el._m = m;
+  if (m.role === 'user') {
+    el.className = 'msg user';
+    el.innerHTML = `<div class="bubble">${esc(m.content)}</div>`;
+  } else {
+    el.className = 'msg bot';
+    el.innerHTML = `<span class="avatar sm">${ico('chef')}</span><div class="bot-col"><div class="bubble md">${md(m.content)}</div>${actionsHTML()}</div>`;
+  }
+  log.append(el);
+  return el;
+}
+const actionsHTML = () => `<div class="msg-actions"><button data-a="copy">${ico('copy')} Copy</button><button data-a="share">${ico('whatsapp')} Share</button><button class="regen" data-a="regen">${ico('refresh')} Regenerate</button></div>`;
+function renderChat() {
+  $$('.msg,.errbox', log).forEach(n => n.remove());
+  state.chat.forEach(appendMsg);
+  updateWelcome(); stickLog(true);
+}
+function addErr(text, retry) {
+  const el = document.createElement('div');
+  el.className = 'errbox';
+  el.textContent = text;
+  if (retry) {
+    const b = document.createElement('button');
+    b.className = 'btn btn-ghost sm'; b.type = 'button'; b.textContent = 'Try again';
+    b.onclick = () => { el.remove(); retry(); };
+    el.append(document.createElement('br'), b);
+  }
+  log.append(el); stickLog(true);
+}
+function buildMessages() {
+  return [{ role: 'system', content: SYSTEM_PROMPT },
+    ...state.chat.slice(-14).map(m => ({ role: m.role, content: m.ctx ? `${m.content}\n\n[Recipe context from TheMealDB]\n${m.ctx}` : m.content }))];
+}
+async function streamReply() {
+  const el = document.createElement('div');
+  el.className = 'msg bot';
+  el.innerHTML = `<span class="avatar sm">${ico('chef')}</span><div class="bot-col"><div class="bubble md"><span class="typing"><i></i><i></i><i></i></span></div></div>`;
+  log.append(el); stickLog(true);
+  const bubble = $('.bubble', el);
+  state.streaming = true; setSendMode(true); updateWelcome();
+  const ac = new AbortController(); state.abort = ac;
+  let acc = '', raf = 0;
+  const paint = () => { raf = 0; const stick = nearBottom(); bubble.innerHTML = md(acc); if (stick) log.scrollTop = log.scrollHeight; };
+  try {
+    await groqStream(buildMessages(), { signal: ac.signal, onToken: t => { acc += t; if (!raf) raf = requestAnimationFrame(paint); } });
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      if (raf) cancelAnimationFrame(raf);
+      if (!acc.trim()) { el.remove(); addErr(e.message, streamReply); }
+      else toast(e.message);
+    }
+  } finally {
+    if (raf) cancelAnimationFrame(raf);
+    state.streaming = false; state.abort = null; setSendMode(false);
+  }
+  if (acc.trim()) {
+    bubble.innerHTML = md(acc);
+    const m = { role: 'assistant', content: acc };
+    state.chat.push(m); el._m = m;
+    $('.bot-col', el).insertAdjacentHTML('beforeend', actionsHTML());
+    saveChat(); stickLog();
+  } else if (el.isConnected) el.remove();
+  updateWelcome();
+}
+async function sendChat(text, ctx) {
+  text = String(text || '').trim();
+  if (!text) return false;
+  if (state.streaming) { toast('The chef is still replying'); return false; }
+  if (!aiReady()) { addErr(setupIssue()); return false; }
+  const m = { role: 'user', content: text }; if (ctx) m.ctx = ctx;
+  state.chat.push(m); saveChat();
+  updateWelcome(); appendMsg(m); stickLog(true);
+  await streamReply();
+  return true;
+}
+$('#composer').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (state.streaming) { state.abort?.abort(); return; }
+  const t = msgBox.value;
+  if (!t.trim()) return;
+  msgBox.value = ''; fit();
+  const ok = await sendChat(t);
+  if (!ok && !state.streaming && !msgBox.value) { msgBox.value = t; fit(); }
+});
+msgBox.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#composer').requestSubmit(); }
+});
+function fit() { msgBox.style.height = 'auto'; msgBox.style.height = Math.min(msgBox.scrollHeight, 160) + 'px'; }
+msgBox.addEventListener('input', fit);
+$('#starters').innerHTML = STARTERS.map(s => `<button class="starter" type="button">${esc(s)}</button>`).join('');
+$('#starters').addEventListener('click', e => { const b = e.target.closest('.starter'); if (b) sendChat(b.textContent); });
+log.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const el = b.closest('.msg'), m = el && el._m; if (!m) return;
+  if (b.dataset.a === 'copy') copyText(m.content);
+  if (b.dataset.a === 'share') openWA('*Recipe from Recipedia Pro*\n\n' + m.content);
+  if (b.dataset.a === 'regen' && !state.streaming) {
+    const i = state.chat.lastIndexOf(m);
+    if (i >= 0) { state.chat.splice(i, 1); saveChat(); el.remove(); streamReply(); }
+  }
+});
+$('#newChat').addEventListener('click', () => {
+  if (!state.chat.length) return;
+  state.abort?.abort();
+  const backup = state.chat; state.chat = []; saveChat(); renderChat();
+  toast('Chat cleared', { label: 'Undo', fn: () => { state.chat = backup; saveChat(); renderChat(); } });
+});
+
+/* =====================================================
+   PANTRY
+===================================================== */
+const P = { tags: [], mood: '' };
+const QUICK = ['Eggs', 'Rice', 'Tomato', 'Onion', 'Potato', 'Paneer', 'Chicken', 'Spinach', 'Pasta', 'Garlic'];
+const MOODS = [
+  ['Tired, need it quick', 'tired and need something quick'],
+  ['Celebrating', 'celebrating and want something special'],
+  ['Energetic', 'energetic and want something healthy'],
+  ['Under the weather', 'under the weather and need something soothing'],
+  ['Craving comfort', 'craving comfort food'],
+  ['Eating light', 'health-conscious and want something light'],
+  ['Adventurous', 'adventurous and want to try something new']
+];
+function renderTags() {
+  $$('.tag', $('#tagbox')).forEach(t => t.remove());
+  const input = $('#pIn');
+  P.tags.forEach((t, i) => {
+    const s = document.createElement('span');
+    s.className = 'tag';
+    s.innerHTML = `${esc(t)}<button type="button" data-i="${i}" aria-label="Remove ${esc(t)}">${ico('x')}</button>`;
+    $('#tagbox').insertBefore(s, input);
+  });
+  $('#quick').innerHTML = QUICK.filter(q => !P.tags.some(t => t.toLowerCase() === q.toLowerCase()))
+    .map(q => `<button class="chip" type="button" data-q="${esc(q)}">${ico('plus')} ${esc(q)}</button>`).join('');
+}
+function addTag(v) {
+  v = v.trim().replace(/,$/, '').trim();
+  if (v && !P.tags.some(t => t.toLowerCase() === v.toLowerCase()) && P.tags.length < 20) P.tags.push(v);
+  $('#pIn').value = ''; renderTags();
+}
+$('#pIn').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag($('#pIn').value); }
+  else if (e.key === 'Backspace' && !$('#pIn').value && P.tags.length) { P.tags.pop(); renderTags(); }
+});
+$('#pIn').addEventListener('blur', () => { if ($('#pIn').value.trim()) addTag($('#pIn').value); });
+$('#tagbox').addEventListener('click', e => {
+  const b = e.target.closest('button[data-i]');
+  if (b) { P.tags.splice(Number(b.dataset.i), 1); renderTags(); } else $('#pIn').focus();
+});
+$('#quick').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) addTag(b.dataset.q); });
+$('#moods').innerHTML = MOODS.map(([l, v]) => `<button class="chip" type="button" data-m="${esc(v)}" aria-pressed="false">${esc(l)}</button>`).join('');
+$('#moods').addEventListener('click', e => {
+  const b = e.target.closest('[data-m]'); if (!b) return;
+  const on = b.getAttribute('aria-pressed') === 'true';
+  $$('#moods .chip').forEach(c => c.setAttribute('aria-pressed', 'false'));
+  b.setAttribute('aria-pressed', String(!on)); P.mood = on ? '' : b.dataset.m;
+});
+
+function normalizeDishes(data) {
+  const arr = Array.isArray(data) ? data : (data.dishes || data.recipes || []);
+  return arr.map(d => ({
+    name: String(d.name || d.title || '').trim(), why: String(d.why || d.description || '').trim(),
+    time: String(d.time || '').trim(), difficulty: String(d.difficulty || '').trim(),
+    steps: Array.isArray(d.steps) ? d.steps.map(String) : []
+  })).filter(d => d.name).slice(0, 3);
+}
+async function suggest() {
+  if ($('#pIn').value.trim()) addTag($('#pIn').value);
+  if (!P.tags.length) { toast('Add at least one ingredient'); $('#pIn').focus(); return; }
+  const out = $('#pOut');
+  if (!aiReady()) { out.innerHTML = `<div class="hint-card">${ico('alert')}<strong class="serif" style="font-size:20px;color:var(--text)">Chef AI is not connected</strong><p>${esc(setupIssue())}</p></div>`; return; }
+  out.innerHTML = Array.from({ length: 3 }, () => '<div class="dish skel" style="height:190px"></div>').join('');
+  $('#pGo').disabled = true;
+  const diet = $('#pDiet').value;
+  const prompt = `Suggest exactly 3 dishes someone can cook with these ingredients: ${P.tags.join(', ')}.
+${P.mood ? 'They are feeling: ' + P.mood + '.' : ''}${diet ? ' Diet: ' + diet + '.' : ''}
+Return a JSON object: {"dishes":[{"name":"appetising dish name","why":"one sentence on why it fits","time":"25 min","difficulty":"Easy","steps":["step 1","step 2","step 3"]}]}
+Use mostly the listed ingredients plus common pantry staples. Keep each step to one short sentence.`;
+  try {
+    const dishes = normalizeDishes(await askJSON(prompt));
+    if (!dishes.length) throw new Error('No dishes came back. Try again.');
+    out.innerHTML = dishes.map((d, i) => `
+      <article class="dish" data-i="${i}">
+        <h3>${esc(d.name)}</h3>
+        <p class="why">${esc(d.why)}</p>
+        <div class="dish-meta">${d.time ? `<span class="tagchip">${esc(d.time)}</span>` : ''}${d.difficulty ? `<span class="tagchip">${esc(d.difficulty)}</span>` : ''}</div>
+        ${d.steps.length ? `<details><summary>Quick steps</summary><ol>${d.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>` : ''}
+        <div class="dish-act">
+          <button class="btn btn-primary sm" data-d="cook">${ico('chef')} Full recipe from the chef</button>
+          <button class="btn btn-ghost sm" data-d="find">${ico('search')} Find on TheMealDB</button>
+        </div>
+      </article>`).join('');
+    out._dishes = dishes;
+  } catch (e) {
+    out.innerHTML = `<div class="hint-card">${ico('alert')}<strong class="serif" style="font-size:20px;color:var(--text)">Could not get suggestions</strong><p>${esc(e.message)}</p><button class="btn btn-primary" id="pRetry" style="margin-top:14px">Try again</button></div>`;
+    $('#pRetry').onclick = suggest;
+  } finally { $('#pGo').disabled = false; }
+}
+$('#pGo').addEventListener('click', suggest);
+$('#pOut').addEventListener('click', e => {
+  const b = e.target.closest('[data-d]'); if (!b) return;
+  const d = $('#pOut')._dishes?.[Number(b.closest('.dish').dataset.i)]; if (!d) return;
+  if (b.dataset.d === 'cook') { setTab('chat'); sendChat(`Give me the full recipe for ${d.name}. I have: ${P.tags.join(', ')}.`); }
+  if (b.dataset.d === 'find') { setTab('discover'); $('#q').value = d.name; showSearch(d.name); }
+});
+
+/* =====================================================
+   MEAL PLANNER
+===================================================== */
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+function normalizePlan(data) {
+  const arr = Array.isArray(data) ? data : (data.days || data.plan || []);
+  const days = arr.slice(0, 7).map((d, i) => ({
+    day: String(d.day || DAYS[i]), breakfast: String(d.breakfast || '-'), lunch: String(d.lunch || '-'), dinner: String(d.dinner || '-')
+  }));
+  if (days.length < 3) throw new Error('The plan came back incomplete. Try again.');
+  return days;
+}
+function planText() {
+  const p = state.plan;
+  return `*My 7-day meal plan*${p.diet ? ' (' + p.diet + ')' : ''}\n\n` +
+    p.days.map(d => `*${d.day}*\nBreakfast: ${d.breakfast}\nLunch: ${d.lunch}\nDinner: ${d.dinner}`).join('\n\n');
+}
+function renderPlan() {
+  const out = $('#plOut'), p = state.plan;
+  if (!p) { out.innerHTML = ''; return; }
+  out.innerHTML = `
+    <div class="plan-tools">
+      <h3>${esc(p.diet || 'Your')} week${p.goal ? ', ' + esc(p.goal) : ''}</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost sm" data-p="copy">${ico('copy')} Copy</button>
+        <button class="btn btn-wa sm" data-p="share">${ico('whatsapp')} Share</button>
+      </div>
+    </div>
+    <div class="week">${p.days.map(d => `
+      <div class="day"><h4>${esc(d.day)}</h4>
+        ${['breakfast', 'lunch', 'dinner'].map(k => `<button class="meal" data-meal="${esc(d[k])}"><small>${k[0].toUpperCase() + k.slice(1)}</small>${esc(d[k])}</button>`).join('')}
+      </div>`).join('')}</div>`;
+}
+async function makePlan() {
+  const out = $('#plOut');
+  if (!aiReady()) { out.innerHTML = `<div class="hint-card" style="margin-top:24px">${ico('alert')}<strong class="serif" style="font-size:20px;color:var(--text)">Chef AI is not connected</strong><p>${esc(setupIssue())}</p></div>`; return; }
+  const diet = $('#plDiet').value, goal = $('#plGoal').value.trim();
+  out.innerHTML = '<div class="week" style="margin-top:26px">' + Array.from({ length: 7 }, () => '<div class="day skel" style="height:230px"></div>').join('') + '</div>';
+  $('#plGo').disabled = true;
+  const prompt = `Create a 7-day meal plan (Monday to Sunday)${diet ? ' for a ' + diet + ' diet' : ''}${goal ? ' with the goal: ' + goal : ''}.
+Return a JSON object: {"days":[{"day":"Monday","breakfast":"Oats with berries","lunch":"Grilled chicken salad","dinner":"Lentil soup"}]}
+Exactly 7 entries. Keep each meal name to 2-5 words.`;
+  try {
+    state.plan = { days: normalizePlan(await askJSON(prompt)), diet, goal };
+    store.set('rp_plan', state.plan);
+    renderPlan();
+  } catch (e) {
+    out.innerHTML = `<div class="hint-card" style="margin-top:24px">${ico('alert')}<strong class="serif" style="font-size:20px;color:var(--text)">Could not build the plan</strong><p>${esc(e.message)}</p><button class="btn btn-primary" id="plRetry" style="margin-top:14px">Try again</button></div>`;
+    $('#plRetry').onclick = makePlan;
+  } finally { $('#plGo').disabled = false; }
+}
+$('#plGo').addEventListener('click', makePlan);
+$('#plOut').addEventListener('click', e => {
+  const meal = e.target.closest('[data-meal]');
+  if (meal) { setTab('chat'); sendChat(`Give me the recipe for ${meal.dataset.meal}${state.plan?.diet ? ' (' + state.plan.diet + ')' : ''}.`); return; }
+  const b = e.target.closest('[data-p]'); if (!b || !state.plan) return;
+  if (b.dataset.p === 'copy') copyText(planText().replace(/\*/g, ''));
+  if (b.dataset.p === 'share') openWA(planText());
+});
+
+/* =====================================================
+   INIT
+===================================================== */
+hydrate();
+setSendMode(false);
+renderSetup();
+checkAI();
+state.cats = DEFAULT_CATS;
+renderChips();
+renderTags();
+saveCart();
+renderChat();
+renderPlan();
+if (state.plan) { $('#plDiet').value = state.plan.diet || ''; $('#plGoal').value = state.plan.goal || ''; }
+setTab(location.hash.slice(1), false);
+window.addEventListener('hashchange', () => setTab(location.hash.slice(1), false));
+defaultView();
+initPlate();
+mdb('categories.php').then(d => {
+  const c = (d.categories || []).map(x => x.strCategory).filter(Boolean);
+  if (c.length) { state.cats = c; renderChips(); }
+}).catch(() => {});
+</script>
+</body>
+</html>

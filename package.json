@@ -1,0 +1,7 @@
+{
+  "name": "recipedia-pro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Recipedia Pro: recipe search, AI chef chat, meal planner and WhatsApp ordering",
+  "engines": { "node": ">=18" }
+}
